@@ -9,15 +9,11 @@
 -- * override the configuration of LazyVim plugins
 return {
   -- add gruvbox
-  { "ellisonleao/gruvbox.nvim" },
-
+  { "ellisonleao/gruvbox.nvim", opts = {terminal_colors=true,}},
+  
+  { "catppuccin/nvim", name = "catppuccin", opts = {background = {light = "latte"}}, priority = 1001 },
   -- Configure LazyVim to load gruvbox
-  {
-    "LazyVim/LazyVim",
-    opts = {
-      colorscheme = "gruvbox",
-    },
-  },
+
 
   -- change trouble config
   {
