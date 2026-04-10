@@ -2,9 +2,9 @@ vim.cmd([[set mouse=a]])
 vim.cmd([[set noswapfile]])
 vim.cmd([[hi @lsp.type.number gui=italic]])
 vim.opt.winborder = "rounded"
-vim.opt.tabstop = 2
-vim.opt.shiftwidth = 2
-vim.opt.showtabline = 2
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.showtabline = 4
 vim.opt.signcolumn = "yes"
 vim.opt.wrap = false
 vim.opt.cursorcolumn = false
@@ -13,6 +13,7 @@ vim.opt.smartindent = true
 vim.opt.termguicolors = true
 vim.opt.undofile = true
 vim.opt.number = true
+vim.opt.relativenumber = true
 
 vim.pack.add({
 	{ src = "https://github.com/nvim-neotest/nvim-nio.git",},
@@ -41,7 +42,7 @@ require "marks".setup {
 }
 
 vim.api.nvim_create_autocmd('FileType', {
-	pattern = { 'lua', 'rust', 'c', },
+	pattern = { 'lua', 'rust', 'c', 'py'},
 	callback = function() vim.treesitter.start() end,
 })
 
@@ -102,10 +103,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
 vim.cmd [[set completeopt+=menuone,noselect,popup]]
 
 vim.lsp.enable({
-	"lua_ls",
+	"lua_ls", "pyright",
 	"rust_analyzer", "clangd", "ruff",
-	"glsl_analyzer", "haskell-language-server", "hlint", "cpp",
-	
+	"glsl_analyzer", "haskell-language-server", "hlint", "cpp", "jdtls",
 })
 
 require("oil").setup({
@@ -164,7 +164,7 @@ require("toggleterm").setup({
       persist_size = true,
       shading_factor = 2,
       close_on_exit = false,  -- Automatically close the terminal when the process finishes
-      shell = "/bin/zsh",  -- Use default shell
+      shell = "/bin/bash",  -- Use default shell
 			start_in_insert = true,
 })
 local term_buf = nil
@@ -184,7 +184,7 @@ local function toggle_terminal()
   if not term_buf or not vim.api.nvim_buf_is_valid(term_buf) then
     term_buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_call(term_buf, function()
-      vim.fn.termopen("/bin/zsh")
+      vim.fn.termopen("/bin/bash")
     end)
   end
 
@@ -205,75 +205,18 @@ local builtin = require("telescope.builtin")
 local map = vim.keymap.set
 local current = 1
 
-local dap = require("dap")
-local dapui = require("dapui")
-
--- Setup dapui with minimal config
-dapui.setup()
-
--- Configure C debugger with codelldb (more reliable than gdb)
-dap.adapters.codelldb = {
-  type = "server",
-  port = "${port}",
-  executable = {
-    command = "codelldb",
-    args = { "--port", "${port}" },
-  }
-}
-
-dap.configurations.c = {
-  {
-    name = "Launch",
-    type = "codelldb",
-    request = "launch",
-    program = function()
-      return vim.fn.getcwd() .. "/build/main"
-    end,
-    cwd = vim.fn.getcwd(),
-    stopOnEntry = false,
-    sourceMap = {
-      ["/home/ja/audioProgramming"] = "${workspaceFolder}",
-    },
-    sourceLanguages = { "c" },
-  },
-}-- Auto-open/close dapui
-dap.listeners.after.event_initialized["dapui_config"] = function()
-  dapui.open()
-end
-dap.listeners.before.event_terminated["dapui_config"] = function()
-  dapui.close()
-end
-dap.listeners.before.event_exited["dapui_config"] = function()
-  dapui.close()
-end
-
-map("n", "<F5>", dap.continue, { desc = "DAP: Continue" })
-map("n", "<F10>", dap.step_over, { desc = "DAP: Step over" })
-map("n", "<F11>", dap.step_into, { desc = "DAP: Step into" })
-map("n", "<F12>", dap.step_out, { desc = "DAP: Step out" })
-map("n", "<leader>db", dap.toggle_breakpoint, { desc = "DAP: Toggle breakpoint" })
-map("n", "<leader>dt", dap.terminate, { desc = "DAP: Terminate" })
-map("n", "<leader>du", dapui.toggle, { desc = "DAP: Toggle UI" })-- Keymaps
 local map = vim.keymap.set
 vim.g.mapleader = " "
-
-map("n", "<F5>", dap.continue, { desc = "DAP: Continue" })
-map("n", "<F10>", dap.step_over, { desc = "DAP: Step over" })
-map("n", "<F11>", dap.step_into, { desc = "DAP: Step into" })
-map("n", "<F12>", dap.step_out, { desc = "DAP: Step out" })
-map("n", "<leader>db", dap.toggle_breakpoint, { desc = "DAP: Toggle breakpoint" })
-map("n", "<leader>dt", dap.terminate, { desc = "DAP: Terminate" })
-map("n", "<leader>du", dapui.toggle, { desc = "DAP: Toggle UI" })
 
 map({ "n", "x" }, "<leader>y", '"+y')
 map({ "n", "x" }, "<leader>d", '"+d')
 map({ "i", "s" }, "<C-e>", function() ls.expand_or_jump(1) end, { silent = true })
 map({ "i", "s" }, "<C-J>", function() ls.jump(1) end, { silent = true })
 map({ "i", "s" }, "<C-K>", function() ls.jump(-1) end, { silent = true })
-map({ "n", "t" }, "<Leader>t", "<Cmd>tabnew<CR>")
+map({ "n", }, "<Leader>t", "<Cmd>tabnew<CR>")
 map({ "n", "t" }, "<Leader>x", "<Cmd>tabclose<CR>")
 
-map({'n', 't'}, '<leader>r', toggle_terminal, { noremap = true, silent = true })
+map({'n', 't'}, '<C-r>', toggle_terminal, { noremap = true, silent = true })
 map('t', "<esc>", "<C-\\><C-n>", { noremap = true, silent = true })
 local opts = { noremap = true, silent = true }
 map('t', '<C-h>', [[<Cmd>wincmd h<CR>]], opts)
@@ -296,14 +239,11 @@ vim.cmd([[
 for i = 1, 8 do
 	map({ "n", "t" }, "<Leader>" .. i, "<Cmd>tabnext " .. i .. "<CR>")
 end
-map({ "n", "v", "x" }, "<leader>v", "<Cmd>edit $MYVIMRC<CR>", { desc = "Edit " .. vim.fn.expand("$MYVIMRC") })
-map({ "n", "v", "x" }, "<leader>z", "<Cmd>e ~/.config/zsh/.zshrc<CR>", { desc = "Edit .zshrc" })
 map({ "n", "v", "x" }, "<leader>n", ":norm ", { desc = "ENTER NORM COMMAND." })
 map({ "n", "v", "x" }, "<leader>o", "<Cmd>source %<CR>", { desc = "Source " .. vim.fn.expand("$MYVIMRC") })
 map({ "n", "v", "x" }, "<leader>O", "<Cmd>restart<CR>", { desc = "Restart vim." })
 map({ "n", "v", "x" }, "<C-s>", [[:s/\V]], { desc = "Enter substitue mode in selection" })
 map({ "n", "v", "x" }, "<leader>lf", vim.lsp.buf.format, { desc = "Format current buffer" })
-map({ "v", "x", "n" }, "<C-y>", '"+y', { desc = "System clipboard yank." })
 map({ "n" }, "<leader>f", builtin.find_files, { desc = "Telescope live grep" })
 
 function git_files() builtin.find_files({ no_ignore = true }) end
@@ -338,8 +278,6 @@ map({ "n" }, "<leader>w", "<Cmd>update<CR>", { desc = "Write the current buffer.
 map({ "n" }, "<leader>q", "<Cmd>:quit<CR>", { desc = "Quit the current buffer." })
 map({ "n" }, "<leader>Q", "<Cmd>:wqa<CR>", { desc = "Quit all buffers and write." })
 map({ "n" }, "<C-f>", "<Cmd>Open .<CR>", { desc = "Open current directory in Finder." })
-map({ "n" }, "<leader>a", ":edit #<CR>", { desc = "Open current directory in Finder." })
-
 
 vim.keymap.set("n", "<C-d>", "<C-d>zz")
 vim.keymap.set("n", "<C-u>", "<C-u>zz")
@@ -348,20 +286,6 @@ vim.keymap.set("n", "N", "Nzzzv")
 
 vim.cmd('colorscheme ' .. default_color)
 -- Run gg-repo-sync automatically after saving a PHP file
-vim.api.nvim_create_autocmd("BufWritePost", {
-	pattern = "*.php",
-	callback = function()
-		vim.fn.jobstart("gg-repo-sync", {
-			on_exit = function(_, exit_code, _)
-				if exit_code == 0 then
-					vim.notify("gg-repo-sync successful", vim.log.levels.INFO)
-				else
-					vim.notify("gg-repo-sync failed", vim.log.levels.ERROR)
-				end
-			end,
-		})
-	end,
-})
 
 require('vim._extui').enable({
 	enable = true, -- Whether to enable or disable the UI.
